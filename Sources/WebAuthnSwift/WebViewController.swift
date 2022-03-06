@@ -35,7 +35,7 @@ class WebViewController: UIViewController {
         ])
 
     //        url = presenter.location
-        let url = URL(string: "http://localhost:4200")!
+        let url = URL(string: "https://web-authn-nextjs.vercel.app/")!
     //        url = URL(string: CredifyServiceX.vars.PASSPORT_URL)
         webView.load(URLRequest(url: url))
 
