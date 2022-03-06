@@ -1,6 +1,7 @@
 import XCTest
 @testable import WebAuthnSwift
 
+@available(iOS 13.0, *)
 final class WebAuthnSwiftTests: XCTestCase {
     func testExample() throws {
         // This is an example of a functional test case.
