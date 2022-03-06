@@ -43,10 +43,20 @@ class WebViewController: UIViewController {
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.title), options: .new, context: nil)
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
 //        navView.setupNavigationBar(title: webView.title ?? "", rightBarImage: UIImage.named("ic_close_white"))
-//        navView.leftBarButton.isHidden = false
+        //        navView.leftBarButton.isHidden = false
         webView.navigationDelegate = self
     }
     
+    
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "title"  {
+//            navView.title = webView.title ?? ""
+        }
+        
+        if keyPath == "estimatedProgress" {
+            print(Float(webView.estimatedProgress))
+        }
+    }
 
     /*
     // MARK: - Navigation
