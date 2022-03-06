@@ -7,8 +7,9 @@
 
 import UIKit
 
+@available(iOS 13.0, *)
 extension UIViewController {
-    public func topMostViewController() -> UIViewController {
+    func topMostViewController() -> UIViewController {
         if self.presentedViewController == nil {
             return self
         }
@@ -23,6 +24,11 @@ extension UIViewController {
             return tab.topMostViewController()
         }
         return self.presentedViewController!.topMostViewController()
+    }
+    
+    var topbarHeight: CGFloat {
+        return (view.window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0.0) +
+            (self.navigationController?.navigationBar.frame.height ?? 0.0)
     }
     
 }
