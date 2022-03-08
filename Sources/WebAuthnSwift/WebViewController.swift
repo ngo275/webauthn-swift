@@ -7,10 +7,19 @@
 
 import UIKit
 import WebKit
+import Combine
+import SafariServices
+
+enum MessageHandler: String {
+    case initialLoadCompleted
+    case createUserCompleted
+    case startRedemption
+}
 
 @available(iOS 13.0, *)
 class WebViewController: UIViewController {
     private var webView: WKWebView!
+    private var cancellables = Set<AnyCancellable>()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +32,9 @@ class WebViewController: UIViewController {
         let configuration = WKWebViewConfiguration()
         let userController = WKUserContentController()
             
-        userController.add(self, name: "initialLoadCompleted")
+        userController.add(self, name: MessageHandler.initialLoadCompleted.rawValue)
+        userController.add(self, name: MessageHandler.createUserCompleted.rawValue)
+        userController.add(self, name: MessageHandler.startRedemption.rawValue)
         
         configuration.userContentController = userController
         configuration.allowsInlineMediaPlayback = true
@@ -42,7 +53,9 @@ class WebViewController: UIViewController {
         ])
 
     
-        let url = URL(string: "https://dev-passport.credify.ninja/bnpl/ekyc-custom")!
+//        let url = URL(string: "https://dev-passport.credify.ninja/bnpl/ekyc-custom")!
+        let url = URL(string: "https://dev-passport.credify.ninja/initial")!
+//        let url = URL(string: "http://localhost:4200/initial")!
     
         webView.load(URLRequest(url: url))
 
@@ -59,6 +72,10 @@ class WebViewController: UIViewController {
         
         if keyPath == "estimatedProgress" {
             print(Float(webView.estimatedProgress))
+            
+//            if webView.estimatedProgress == 1.0 {
+//                presentNextWebView(webView)
+//            }
         }
     }
 
@@ -77,26 +94,53 @@ extension WebViewController: WKUIDelegate {
         
         self.present(alertController, animated: true, completion: nil)
     }
+    
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        guard let url = navigationAction.request.url else {
+            return nil
+        }
+        guard let targetFrame = navigationAction.targetFrame, targetFrame.isMainFrame else {
+//            webView.load(URLRequest(url: url))
+            
+            let vc = SFSafariViewController(url: url)
+//            let nvc = UINavigationController(rootViewController: vc)
+//            nvc.modalPresentationStyle = .overFullScreen
+            present(vc, animated: true)
+            
+            return nil
+        }
+        return nil
+    }
 }
 
 @available(iOS 13.0, *)
 extension WebViewController: WKNavigationDelegate {
+    
+    func presentNextWebView(_ webView: WKWebView) {
+//        let webViewToRemove = webView
+        let webViewToAdd = webView
+        webViewToAdd.frame = CGRect(origin: CGPoint(x: webView.frame.width, y: webView.frame.minY), size: webView.frame.size)
+//        webViewToAdd.center = CGPoint(x: 2 * webView.bounds.width, y: 0)
+//        currentWebView = webViewToAdd
+//        self.view.addSubview(webViewToAdd)
+        view.addSubview(webViewToAdd)
+        UIView.animate(withDuration: 0.4, animations: {
+            
+            let moveLeft = CGAffineTransform(translationX: -(webView.bounds.width), y: 0.0)
+            webViewToAdd.transform = moveLeft
+            
+//            webViewToRemove.center = CGPointMake(-2.0*self.view.bounds.width, CGRectGetMidY(self.view.bounds))
+//            webViewToAdd.center = self.CGPointMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds))
+            }, completion: { finished in
+//                webViewToRemove.removeFromSuperview()
+        })
+    }
+    
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         
         // Prevents zoom in when clicking textareas
         let javascriptFunction = "var style = document.createElement('style'); style.innerHTML = 'input,select:focus, textarea {font-size: 16px !important;}'; document.head.appendChild(style);"
         webView.evaluateJavaScript(javascriptFunction)
-        
-        let data: [String:String] = [
-            "phone_number": "381231234",
-            "country_code": "+84",
-            "full_name": "test test",
-            "action": "ACTION_LOGIN",
-        ]
-        guard let json = try? JSONEncoder().encode(data),
-              let jsonStr = String(data: json, encoding: .utf8) else { return }
-        let js = "(function() { window.postMessage('\(jsonStr)','*'); })();"
-        webView.evaluateJavaScript(js)
     }
 }
 
@@ -106,8 +150,58 @@ extension WebViewController: WKScriptMessageHandler{
         
         print(message.name)
         print(message.body)
+        guard let type = MessageHandler(rawValue: message.name) else {
+            return
+        }
         guard let dict = message.body as? [String : Any] else {
             return
+        }
+    
+        
+        switch type {
+        case .initialLoadCompleted:
+            let json = try! JSONSerialization.jsonObject(with: try! WebAuthnSwift.offer.jsonData(), options: [])
+            guard let dictionary = json as? [String : Any] else {
+                return
+            }
+            let data: [String: Any] = [
+                "type": "CREDIFY-WEB-SDK",
+                "action": "startRedemption",
+                "payload": [
+                    "offer": dictionary.keysToCamelCase(),
+                    "profile": WebAuthnSwift.profile
+                ]
+            ]
+
+            let js = "(function() { window.postMessage('\(data.json)','*'); })();"
+            
+            webView.evaluateJavaScript(js)
+        case .startRedemption:
+            break
+        case .createUserCompleted:
+            guard let payload = dict["payload"] as? [String: Any], let credifyId = payload["credifyId"] as? String else {
+                return
+            }
+            WebAuthnSwift.pushClaimTokensTask?(credifyId)
+                .receive(on: DispatchQueue.main)
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        let data: [String: Any] = [
+                            "type": "CREDIFY-WEB-SDK",
+                            "action": "pushClaimCompleted",
+                            "payload": [
+                                "isSuccess": true
+                            ]
+                        ]
+                        let js = "(function() { window.postMessage('\(data.json)','*'); })();"
+                        self.webView.evaluateJavaScript(js)
+                    case .failure(let error):
+                        print(error)
+                    }
+                }, receiveValue: { _ in }).store(in: &self.cancellables)
+        default:
+            break
         }
     }
     
