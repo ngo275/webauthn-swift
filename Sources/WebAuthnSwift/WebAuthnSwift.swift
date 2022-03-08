@@ -69,7 +69,9 @@ public class WebAuthnSwift {
     public func showOffer(_ offer: OfferData) {
         WebAuthnSwift.offer = offer
         let vc = WebViewController()
-        let navigationController = UINavigationController(rootViewController: vc)
+//        let navigationController = UINavigationController(rootViewController: vc)
+        let navigationController = UINavigationController()
+        navigationController.viewControllers = [UIViewController(), vc]
         navigationController.modalPresentationStyle = .overFullScreen
         navigationController.interactivePopGestureRecognizer?.isEnabled = false
         guard let currenVC = UIApplication.shared.keyWindow?.rootViewController?.topMostViewController() else {

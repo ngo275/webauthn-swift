@@ -24,10 +24,7 @@ class WebViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        UINavigationBar.appearance().barTintColor = .black
-        UINavigationBar.appearance().tintColor = .white
-        UINavigationBar.appearance().titleTextAttributes = [ .foregroundColor: UIColor.white ]
-        UINavigationBar.appearance().isTranslucent = false
+        customizeNavBar()
 
         let configuration = WKWebViewConfiguration()
         let userController = WKUserContentController()
@@ -78,6 +75,44 @@ class WebViewController: UIViewController {
 //            }
         }
     }
+    
+    private func customizeNavBar() {
+        guard let navBar = navigationController?.navigationBar else {
+            return
+        }
+
+        
+        navBar.setGradientBackground(colors: [UIColor(named: "gradientLeft", in: Bundle.module, compatibleWith: nil)!, UIColor(named: "gradientRight", in: Bundle.module, compatibleWith: nil)!], startPoint: .topLeft, endPoint: .bottomRight)
+        
+        navBar.titleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont(name: "MarkerFelt-Thin", size: 20)!
+        ]
+        navBar.tintColor = .white
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(named: "ic_back", in: Bundle.module, with: nil),
+            style: .plain,
+            target: self,
+            action: #selector(goBack)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+//            barButtonSystemItem: .close,
+            image: UIImage(named: "ic_close", in: Bundle.module, with: nil),
+            style: .plain,
+            target: self,
+            action: #selector(close)
+        )
+    }
+    
+    @objc func goBack() {
+        if webView.canGoBack {
+            webView.goBack()
+        }
+    }
+    
+    @objc func close() {
+        dismiss(animated: true)
+    }
 
 }
 
@@ -103,9 +138,9 @@ extension WebViewController: WKUIDelegate {
 //            webView.load(URLRequest(url: url))
             
             let vc = SFSafariViewController(url: url)
-//            let nvc = UINavigationController(rootViewController: vc)
-//            nvc.modalPresentationStyle = .overFullScreen
-            present(vc, animated: true)
+            let nvc = UINavigationController(rootViewController: vc)
+            nvc.modalPresentationStyle = .overFullScreen
+            present(nvc, animated: true)
             
             return nil
         }
