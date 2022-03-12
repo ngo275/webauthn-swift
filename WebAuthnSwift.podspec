@@ -16,7 +16,7 @@ Pod::Spec.new do |spec|
   #
 
   spec.name         = "WebAuthnSwift"
-  spec.version      = "0.0.8"
+  spec.version      = "0.0.9"
   spec.summary      = "Test distribution of WebAuthnSwift."
 
   # This description is used to generate tags and improve search results.
@@ -68,6 +68,7 @@ Pod::Spec.new do |spec|
   # spec.osx.deployment_target = "10.7"
   # spec.watchos.deployment_target = "2.0"
   # spec.tvos.deployment_target = "9.0"
+  spec.swift_version = "5.5"
 
 
   # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
