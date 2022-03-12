@@ -200,8 +200,8 @@ extension WebViewController: WKScriptMessageHandler{
                         print(error)
                     }
                 }, receiveValue: { _ in }).store(in: &self.cancellables)
-        default:
-            break
+//        default:
+//            break
         }
     }
     
